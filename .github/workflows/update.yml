@@ -4,7 +4,7 @@ name: Update dashboard
 on:
   schedule:
     # Runs Mondays at 09:00 UTC (GitHub Actions cron is ALWAYS UTC)
-    - cron: "0 9 * * 1"
+    - cron: "0 9,21 * * *"
   workflow_dispatch:
 
 permissions:
