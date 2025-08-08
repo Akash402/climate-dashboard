@@ -6,6 +6,9 @@ on:
     # Runs Mondays at 09:00 UTC (GitHub Actions cron is ALWAYS UTC)
     - cron: "0 9,21 * * *"
   workflow_dispatch:
+  push:
+    branches:
+      - master
 
 permissions:
   contents: write
