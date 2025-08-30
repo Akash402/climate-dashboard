@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Climate Now & to 2050 — Dashboard</title>
+<style>
+  :root {
+    --bg:#fff; --fg:#111; --muted:#666; --card:#f7f7f7; --border:#e5e5e5;
+    --good:#2e7d32; --warn:#f9a825; --bad:#c62828;
+  }
+  body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; margin: 18px; color:var(--fg); background:var(--bg); }
+  .header { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .tabs { display:flex; gap:8px; }
+  .tabbtn { border:1px solid var(--border); background:var(--card); padding:8px 12px; border-radius:8px; cursor:pointer; }
+  .tabbtn.active { background:#eaf4ff; border-color:#b3daff; }
+  .section { display:none; }
+  .section.active { display:block; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 16px; }
+  .tile, .card { border:1px solid var(--border); border-radius:12px; padding:16px; background:var(--card); }
+  .title { font-weight:600; margin:.25rem 0 .5rem; }
+  .big { font-size:28px; font-weight:800; }
+  .label { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  .value { font-size:22px; font-weight:700; margin-top:6px; }
+  .sub { font-size:13px; color:var(--muted); margin-top:6px; }
+  img { width:100%; height:auto; border:1px solid #eee; border-radius:8px; }
+  details summary { cursor:pointer; color:#0b57d0; margin-top:6px; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:6px; }
+  /* Animations */
+  .pulse { animation:pulse 2.4s ease-in-out infinite; transform-origin:center; }
+  @keyframes pulse { 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
+  .reveal { opacity:0; transform: translateY(8px); transition: all .6s ease; }
+  .reveal.show { opacity:1; transform: translateY(0); }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>Climate Now & to 2050</h1>
+    <div class="sub">Generated: 2025-08-30 09:16 UTC</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tabbtn active" data-tab="simple">Simple</button>
+    <button class="tabbtn" data-tab="details">Details</button>
+  </div>
+
+  <section id="simple" class="section active">
+    <div class="grid">
+      
+      <div class="tile pulse">
+        <div class="big"><span class="count" data-value="427.87">0</span> ppm</div>
+        <div class="title">CO₂ in the air</div>
+        <p>Higher than at any point in human history.</p>
+        <details><summary>What this means</summary>
+          CO₂ traps heat. More CO₂ → warmer planet.
+        </details>
+      </div>
+
+      <div class="tile">
+        <div class="big">+3.6 inches</div>
+        <div class="title">Sea level since 1993</div>
+        <p>Global seas have risen by ~9.2 cm — about a modern phone’s thickness × 6.</p>
+        <details><summary>What this means</summary>
+          Higher baseline makes coastal flooding more frequent.
+        </details>
+      </div>
+
+      <div class="tile">
+        <div class="big">— million km²</div>
+        <div class="title">Arctic summer ice</div>
+        <p>Trending lower; darker ocean absorbs more heat.</p>
+        <details><summary>What this means</summary>
+          Less ice → more warming feedback.
+        </details>
+      </div>
+
+      <div class="tile">
+        <div class="big">Oceans are the heat sponge</div>
+        <div class="title">Ocean heat content</div>
+        <p>Most extra heat is stored in the upper 2 km of the ocean.</p>
+        <details><summary>What this means</summary>
+          Warmer oceans raise sea levels and power heavier downpours.
+        </details>
+      </div>
+    
+    </div>
+    
+      <div class="proj card reveal">
+        <div class="label">Sea level projection</div>
+        <div class="row">
+          <div>
+            <label><input type="radio" name="scn" value="low"> Low</label>
+            <label><input type="radio" name="scn" value="mid" checked> Middle</label>
+            <label><input type="radio" name="scn" value="high"> High</label>
+          </div>
+          <div>
+            <label>Projection year: <input id="yr" type="range" min="2025" max="2050" value="2050"></label>
+          </div>
+        </div>
+        <div id="slr" class="value">By <b>2050</b>: <b>7.9–11.4 inches</b> (Middle)</div>
+        <div class="sub">Ranges reflect IPCC “likely” bands relative to 1995–2014 baseline.</div>
+      </div>
+    
+  </section>
+
+  <section id="details" class="section">
+    <div class="grid">
+      
+      <div class="card reveal">
+        <div class="label">Atmospheric CO₂ (Mauna Loa, monthly)</div>
+        <div class="value">427.87 ppm</div>
+        <div class="sub">Latest: 2025-07 · <a href="https://gml.noaa.gov/ccgg/trends/">NOAA GML</a></div>
+        <img src="co2_24mo.png" alt="CO₂ last 24 months">
+      </div>
+
+      <div class="card reveal">
+        <div class="label">Met Éireann Warnings (Ireland)</div>
+        <div class="value">—</div>
+        <div class="sub">— · <a href="https://www.met.ie/warnings">Source</a></div>
+      </div>
+
+      <div class="card reveal">
+        <div class="label">Arctic Sea Ice Extent</div>
+        <div class="value">— million km²</div>
+        <div class="sub">Latest: N/A · <a href="https://nsidc.org/sea-ice-today">NSIDC</a></div>
+        <div class='sub'>Chart unavailable this run.</div>
+      </div>
+
+      <div class="card reveal">
+        <div class="label">Dublin Tide Gauge</div>
+        <div class="value">Dublin tide-gauge shows a gradual long-term rise.</div>
+        <div class="sub"><a href="https://psmsl.org/data/obtaining/stations/432.php">PSMSL Station 432</a></div>
+      </div>
+
+      <div class="card reveal">
+        <div class="label">Ocean Heat Content (0–2000 m)</div>
+        <div class="value">N/A </div>
+        <div class="sub">Latest year: N/A · <a href="https://www.ncei.noaa.gov/access/global-ocean-heat-content/">NOAA NCEI</a></div>
+      </div>
+    
+    </div>
+  </section>
+
+  <div class="sub" style="margin-top:20px">
+    Sources: <a href="https://gml.noaa.gov/ccgg/trends/">NOAA GML</a>, <a href="https://nsidc.org/sea-ice-today">NSIDC</a>, <a href="https://www.ncei.noaa.gov/access/global-ocean-heat-content/">NOAA NCEI</a>, <a href="https://psmsl.org/data/obtaining/stations/432.php">PSMSL Dublin</a>, Met Éireann warnings.
+  </div>
+
+  <script>
+  // Tabs
+  const tabs = document.querySelectorAll('.tabbtn');
+  const secs = {"simple": document.getElementById('simple'), "details": document.getElementById('details')};
+  tabs.forEach(btn => btn.addEventListener('click', () => {
+    tabs.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    Object.values(secs).forEach(s=>s.classList.remove('active'));
+    secs[btn.dataset.tab].classList.add('active');
+  }));
+
+  // Count-up
+  const ease = t => 1 - Math.pow(1-t, 3);
+  const counts = [...document.querySelectorAll('.count')];
+  const io1 = new IntersectionObserver(es => es.forEach(e=>{
+    if (!e.isIntersecting) return;
+    const el = e.target; io1.unobserve(el);
+    const end = parseFloat(el.dataset.value); const start = 0, dur = 1000; let t0;
+    function tick(ts){ t0 ??= ts; const p = Math.min(1,(ts-t0)/dur); el.textContent = (start+(end-start)*ease(p)).toFixed(end%1?1:0); if(p<1) requestAnimationFrame(tick); }
+    requestAnimationFrame(tick);
+  }), {threshold:.6});
+  counts.forEach(el=>io1.observe(el));
+
+  // Reveal-on-scroll
+  const rev = document.querySelectorAll('.reveal');
+  const io2 = new IntersectionObserver(es => es.forEach(e=> e.target.classList.toggle('show', e.isIntersecting)), {threshold:.2});
+  rev.forEach(el=>io2.observe(el));
+
+  // Projections (simple string swap; not a simulation)
+  const SLR = {
+    low:  [5.9, 9.1],
+    mid:  [7.9, 11.4],
+    high: [7.9, 11.4],
+  };
+  const SCN_LABEL = { low:"Low", mid:"Middle", high:"High" };
+  let scenario = "mid";
+  const slr = document.getElementById('slr');
+  const yr = document.getElementById('yr');
+  function updateSLR(){
+    const y = yr.value;
+    const vals = SLR[scenario];
+    const lo = vals[0], hi = vals[1];
+    slr.innerHTML = 'By <b>' + y + '</b>: <b>' + lo + '–' + hi + ' inches</b> (' + SCN_LABEL[scenario] + ')';
+  }
+  document.querySelectorAll('input[name="scn"]').forEach(r => r.addEventListener('change', e => { scenario = e.target.value; updateSLR(); }));
+  yr.addEventListener('input', updateSLR); updateSLR();
+  </script>
+</body>
+</html>
