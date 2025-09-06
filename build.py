@@ -304,39 +304,73 @@ def build_html(ctx: dict) -> str:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Climate Now & to 2050 — Dashboard</title>
+<!-- Google AdSense -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUBLISHER_ID"
+     crossorigin="anonymous"></script>
 <style>
   :root {{
-    --bg:#fff; --fg:#111; --muted:#666; --card:#f7f7f7; --border:#e5e5e5;
-    --good:#2e7d32; --warn:#f9a825; --bad:#c62828;
+    --bg:#fafbfc; --fg:#2c3e50; --muted:#7f8c8d; --card:#ffffff; --border:#e8f4fd;
+    --good:#27ae60; --warn:#f39c12; --bad:#e74c3c;
+    --primary:#3498db; --accent:#9b59b6; --highlight:#f1c40f;
   }}
-  body {{ font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; margin: 18px; color:var(--fg); background:var(--bg); }}
-  .header {{ display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; }}
-  .tabs {{ display:flex; gap:8px; }}
-  .tabbtn {{ border:1px solid var(--border); background:var(--card); padding:8px 12px; border-radius:8px; cursor:pointer; }}
-  .tabbtn.active {{ background:#eaf4ff; border-color:#b3daff; }}
+  body {{ font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; margin: 18px; color:var(--fg); background:var(--bg); line-height: 1.6; }}
+  .header {{ display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom: 24px; }}
+  .header h1 {{ color: var(--primary); font-weight: 700; }}
+  .tabs {{ display:flex; gap:8px; margin-bottom: 20px; }}
+  .tabbtn {{ border:1px solid var(--border); background:var(--card); padding:10px 16px; border-radius:12px; cursor:pointer; transition: all 0.2s ease; font-weight: 500; }}
+  .tabbtn:hover {{ background: var(--primary); color: white; border-color: var(--primary); }}
+  .tabbtn.active {{ background:var(--primary); color: white; border-color:var(--primary); box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3); }}
   .section {{ display:none; }}
   .section.active {{ display:block; }}
-  .grid {{ display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 16px; }}
-  .tile, .card {{ border:1px solid var(--border); border-radius:12px; padding:16px; background:var(--card); }}
-  .title {{ font-weight:600; margin:.25rem 0 .5rem; }}
-  .big {{ font-size:28px; font-weight:800; }}
-  .label {{ font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }}
-  .value {{ font-size:22px; font-weight:700; margin-top:6px; }}
-  .sub {{ font-size:13px; color:var(--muted); margin-top:6px; }}
-  img {{ width:100%; height:auto; border:1px solid #eee; border-radius:8px; }}
-  details summary {{ cursor:pointer; color:#0b57d0; margin-top:6px; }}
-  .row {{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:6px; }}
+  .grid {{ display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 16px; }}
+  .tile, .card {{ border:1px solid var(--border); border-radius:16px; padding:20px; background:var(--card); box-shadow: 0 2px 12px rgba(0,0,0,0.05); transition: all 0.3s ease; }}
+  .tile:hover, .card:hover {{ transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }}
+  .title {{ font-weight:600; margin:.25rem 0 .5rem; color: var(--primary); }}
+  .big {{ font-size:32px; font-weight:800; background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }}
+  .label {{ font-size:13px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); font-weight: 600; }}
+  .value {{ font-size:24px; font-weight:700; margin-top:8px; color: var(--fg); }}
+  .sub {{ font-size:14px; color:var(--muted); margin-top:8px; line-height: 1.5; }}
+  img {{ width:100%; height:auto; border:1px solid var(--border); border-radius:12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+  details summary {{ cursor:pointer; color:var(--primary); margin-top:8px; font-weight: 500; }}
+  details summary:hover {{ color: var(--accent); }}
+  .row {{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:12px; }}
+  .proj {{ margin-top: 24px; }}
+  .proj .label {{ margin-bottom: 16px; }}
+  .proj .row {{ margin-top: 16px; margin-bottom: 20px; }}
+  .proj .value {{ margin-top: 16px; margin-bottom: 12px; }}
+  .proj .sub {{ margin-top: 12px; }}
+  .proj label {{ margin-right: 16px; display: inline-block; color: var(--fg); font-weight: 500; }}
+  .proj input[type="radio"] {{ margin-right: 6px; accent-color: var(--primary); }}
+  .proj input[type="range"] {{ margin-left: 8px; accent-color: var(--primary); }}
+  .proj .value {{ color: var(--primary); }}
   /* Animations */
   .pulse {{ animation:pulse 2.4s ease-in-out infinite; transform-origin:center; }}
   @keyframes pulse {{ 0%{{transform:scale(1)}} 50%{{transform:scale(1.02)}} 100%{{transform:scale(1)}} }}
-  .reveal {{ opacity:0; transform: translateY(8px); transition: all .6s ease; }}
+  .reveal {{ opacity:0; transform: translateY(12px); transition: all .8s cubic-bezier(0.4, 0, 0.2, 1); }}
   .reveal.show {{ opacity:1; transform: translateY(0); }}
+  
+  /* Links */
+  a {{ color: var(--primary); text-decoration: none; transition: color 0.2s ease; }}
+  a:hover {{ color: var(--accent); text-decoration: underline; }}
 </style>
 </head>
 <body>
   <div class="header">
     <h1>Climate Now & to 2050</h1>
     <div class="sub">Generated: {now}</div>
+  </div>
+
+  <!-- AdSense Banner Ad -->
+  <div style="margin: 20px 0; text-align: center;">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-YOUR_PUBLISHER_ID"
+         data-ad-slot="YOUR_AD_SLOT_ID"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({{}});
+    </script>
   </div>
 
   <div class="tabs">
@@ -359,6 +393,19 @@ def build_html(ctx: dict) -> str:
 
   <div class="sub" style="margin-top:20px">
     Sources: <a href="{co2["source"]}">NOAA GML</a>, <a href="{nsidc["source"]}">NSIDC</a>, <a href="{ohc["source"]}">NOAA NCEI</a>, <a href="{dublin["link"]}">PSMSL Dublin</a>, Met Éireann warnings.
+  </div>
+
+  <!-- AdSense Footer Ad -->
+  <div style="margin: 20px 0; text-align: center;">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-YOUR_PUBLISHER_ID"
+         data-ad-slot="YOUR_FOOTER_AD_SLOT_ID"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({{}});
+    </script>
   </div>
 
   <script>
