@@ -8,6 +8,7 @@ on:
   schedule:
     # Run UI tests daily at 2 AM UTC
     - cron: '0 2 * * *'
+  workflow_dispatch:
 
 jobs:
   ui-tests:
@@ -53,7 +54,7 @@ jobs:
           --junitxml=ui-test-results-${{ matrix.browser }}.xml
     
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: ui-test-results-${{ matrix.browser }}
@@ -62,7 +63,7 @@ jobs:
           test-results/
     
     - name: Upload videos
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: ui-test-videos-${{ matrix.browser }}
@@ -99,7 +100,7 @@ jobs:
           --junitxml=ui-test-results-mobile.xml
     
     - name: Upload mobile test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: ui-test-results-mobile
@@ -138,7 +139,7 @@ jobs:
           --junitxml=ui-test-results-performance.xml
     
     - name: Upload performance test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: ui-test-results-performance
@@ -183,7 +184,7 @@ jobs:
         fi
     
     - name: Upload test summary
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ui-test-summary
         path: test-summary.md
