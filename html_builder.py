@@ -349,7 +349,7 @@ def build_css() -> str:
   .risk-high { background: var(--warn); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
   .risk-critical { background: var(--bad); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
   .risk-medium { background: var(--good); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
-  .elevation { font-size: 11px; color: var(--muted); padding: 4px 8px; background: var(--bg); border-radius: 8px; }
+  .elevation { font-size: 11px; color: var (--muted); padding: 4px 8px; background: var(--bg); border-radius: 8px; }
   
   /* Zoomable Images */
   .zoomable { cursor: zoom-in; transition: transform 0.3s ease; }
@@ -500,19 +500,6 @@ def build_html(ctx: dict) -> str:
   <div class="header">
     <h1>Climate Now & to 2050</h1>
     <div class="sub">Generated: {now}</div>
-  </div>
-
-  <!-- AdSense Banner Ad -->
-  <div style="margin: 20px 0; text-align: center;">
-    <ins class="adsbygoogle"
-         style="display:block"
-         data-ad-client="ca-pub-YOUR_PUBLISHER_ID"
-         data-ad-slot="YOUR_AD_SLOT_ID"
-         data-ad-format="auto"
-         data-full-width-responsive="true"></ins>
-    <script>
-         (adsbygoogle = window.adsbygoogle || []).push({{}});
-    </script>
   </div>
 
   <div class="tabs">
