@@ -13,6 +13,7 @@ Features:
 - Plain-language explanations + friendly units
 - Robust fetchers with graceful fallback
 - Google AdSense integration
+- Google AdSense integration
 
 Run:
   pip install -r requirements.txt
