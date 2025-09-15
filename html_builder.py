@@ -294,7 +294,7 @@ def build_css() -> str:
   body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; margin: 18px; color:var(--fg); background:var(--bg); line-height: 1.6; }
   .header { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom: 24px; }
   .header h1 { color: var(--primary); font-weight: 700; }
-  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .header-right { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
   .about-header-btn { 
     background: none; 
     border: none; 
