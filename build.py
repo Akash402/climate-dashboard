@@ -70,17 +70,17 @@ def main():
         }
     
     # Get Dublin tide gauge info
-    print("  🌊 Getting Dublin tide gauge info...")
+    print("  Getting Dublin tide gauge info...")
     dublin = fetch_psmsl_dublin_note()
-    print("    ✅ Dublin tide gauge data available")
+    print("    Dublin tide gauge data available")
     
     # Fetch Arctic sea ice data from NSIDC
-    print("  🧊 Fetching Arctic sea ice data...")
+    print("  Fetching Arctic sea ice data...")
     try:
         nsidc = fetch_nsidc_arctic_daily()
-        print(f"    ✅ Arctic ice: {nsidc['latest']['extent_mkm2']} million km²")
+        print(f"    Arctic ice: {nsidc['latest']['extent_mkm2']} million km²")
     except Exception as e:
-        print(f"    ❌ Arctic sea ice data failed: {e}")
+        print(f"    Arctic sea ice data failed: {e}")
         traceback.print_exc()
         nsidc = {
             "latest": {"date": "N/A", "extent_mkm2": float("nan")}, 
@@ -88,12 +88,12 @@ def main():
         }
     
     # Fetch ocean heat content from NOAA NCEI
-    print("  🌡️ Fetching ocean heat content...")
+    print("  Fetching ocean heat content...")
     try:
         ohc = fetch_noaa_ncei_ohc_latest()
-        print(f"    ✅ Ocean heat: {ohc['value']} {ohc['units']} ({ohc['year']})")
+        print(f"    Ocean heat: {ohc['value']} {ohc['units']} ({ohc['year']})")
     except Exception as e:
-        print(f"    ❌ Ocean heat content failed: {e}")
+        print(f"    Ocean heat content failed: {e}")
         traceback.print_exc()
         ohc = {
             "year": "N/A", "value": "N/A", "units": "", 
@@ -101,12 +101,12 @@ def main():
         }
     
     # Fetch forest fires data from NASA FIRMS
-    print("  🔥 Fetching forest fires data...")
+    print("  Fetching forest fires data...")
     try:
         fires = fetch_forest_fires_data()
-        print(f"    ✅ Forest fires: {fires['count']} active fires detected")
+        print(f"    Forest fires: {fires['count']} active fires detected")
     except Exception as e:
-        print(f"    ❌ Forest fires data failed: {e}")
+        print(f"    Forest fires data failed: {e}")
         traceback.print_exc()
         fires = {
             "count": "N/A", 
@@ -131,8 +131,8 @@ def main():
     # Write to output file
     output_path = Path("dist") / "index.html"
     output_path.write_text(html, encoding="utf-8")
-    print(f"✅ Dashboard generated: {output_path}")
-    print("🌐 Open dist/index.html in your browser to view the dashboard!")
+    print(f"Dashboard generated: {output_path}")
+    print("Open dist/index.html in your browser to view the dashboard!")
 
 
 if __name__ == "__main__":

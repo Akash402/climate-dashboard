@@ -294,6 +294,19 @@ def build_css() -> str:
   body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; margin: 18px; color:var(--fg); background:var(--bg); line-height: 1.6; }
   .header { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom: 24px; }
   .header h1 { color: var(--primary); font-weight: 700; }
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .about-header-btn { 
+    background: none; 
+    border: none; 
+    color: var(--primary); 
+    font-size: 16px; 
+    font-weight: 500; 
+    cursor: pointer; 
+    padding: 4px 0; 
+    transition: color 0.2s ease;
+    font-family: inherit;
+  }
+  .about-header-btn:hover { color: var(--accent); }
   .tabs { display:flex; gap:8px; margin-bottom: 20px; }
   .tabbtn { border:1px solid var(--border); background:var(--card); padding:10px 16px; border-radius:12px; cursor:pointer; transition: all 0.2s ease; font-weight: 500; }
   .tabbtn:hover { background: var(--primary); color: white; border-color: var(--primary); }
@@ -432,6 +445,52 @@ def build_css() -> str:
   /* Visit Counter */
   .visit-counter { position: fixed; bottom: 20px; right: 20px; background: var(--primary); color: white; padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1000; }
   
+  /* About Us Popup */
+  .about-popup { 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0, 0, 0, 0.8); 
+    z-index: 10001; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .about-popup-content { 
+    background: var(--card); 
+    border-radius: 16px; 
+    padding: 30px; 
+    max-width: 600px; 
+    max-height: 80vh; 
+    overflow-y: auto; 
+    margin: 20px;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+  
+  .about-popup-close { 
+    position: absolute; 
+    top: 15px; 
+    right: 15px; 
+    background: var(--muted); 
+    color: white; 
+    border: none; 
+    border-radius: 50%; 
+    width: 30px; 
+    height: 30px; 
+    font-size: 18px; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+  }
+  
+  .about-popup-close:hover { background: var(--bad); }
+  
 """
 
 
@@ -550,15 +609,19 @@ def build_javascript() -> str:
   // Make closeZoomModal globally available
   window.closeZoomModal = closeZoomModal;
   
-  // Visit counter
-  let visitCount = localStorage.getItem('climate-dashboard-visits') || 0;
-  visitCount = parseInt(visitCount) + 1;
-  localStorage.setItem('climate-dashboard-visits', visitCount);
-  
-  const counter = document.createElement('div');
-  counter.className = 'visit-counter';
-  counter.textContent = `👥 Visit #${{visitCount}}`;
-  document.body.appendChild(counter);
+  // Visit counter - only increment for unique visitors
+  // let visitCount = localStorage.getItem('climate-dashboard-visits') || 0;
+  // let isUniqueVisitor = !localStorage.getItem('climate-dashboard-visited');
+  // 
+  // if (isUniqueVisitor) {{
+  //   visitCount = parseInt(visitCount) + 1;
+  //   localStorage.setItem('climate-dashboard-visits', visitCount);
+  // }}
+  // 
+  // const counter = document.createElement('div');
+  // counter.className = 'visit-counter';
+  // counter.textContent = `👥 Unique Visitors: ${{visitCount}}`;
+  // document.body.appendChild(counter);
   
   
   // Year-by-year animation for projections
@@ -585,6 +648,42 @@ def build_javascript() -> str:
   animateBtn.style.cssText = 'margin: 10px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;';
   animateBtn.addEventListener('click', animateProjections);
   document.querySelector('.proj').appendChild(animateBtn);
+  
+  // About Us popup function
+  function showAboutPopup() {{
+    const popup = document.createElement('div');
+    popup.className = 'about-popup';
+    popup.innerHTML = `
+      <div class="about-popup-content">
+        <button class="about-popup-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        <div class="label">About Us</div>
+        <h3>Climate Change Board</h3>
+        <p>We are software engineers passionate about making climate data accessible and understandable to everyone. Our mission is to provide real-time climate information in a clear, visual format that helps people understand the current state of our planet and what the future holds.</p>
+        <p>This dashboard aggregates data from leading scientific institutions including NOAA, NSIDC, NASA, and Met Éireann to give you a comprehensive view of climate change indicators. We believe that understanding the data is the first step toward taking action.</p>
+        <div class="sub">Data updated twice daily • Built with scientific accuracy • Free and open source</div>
+      </div>
+    `;
+    document.body.appendChild(popup);
+    
+    // Close on background click
+    popup.addEventListener('click', (e) => {{
+      if (e.target === popup) {{
+        popup.remove();
+      }}
+    }});
+    
+    // Close on Escape key
+    const handleEscape = (e) => {{
+      if (e.key === 'Escape') {{
+        popup.remove();
+        document.removeEventListener('keydown', handleEscape);
+      }}
+    }};
+    document.addEventListener('keydown', handleEscape);
+  }}
+  
+  // Make showAboutPopup globally available
+  window.showAboutPopup = showAboutPopup;
   """
 
 
@@ -615,7 +714,7 @@ def build_html(ctx: dict) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Climate Now & to 2050 — Dashboard</title>
+<title>Climate Change Board — Dashboard</title>
 <!-- Google AdSense -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4840490843724733"
      crossorigin="anonymous"></script>
@@ -625,8 +724,11 @@ def build_html(ctx: dict) -> str:
 </head>
 <body>
   <div class="header">
-    <h1>Climate Now & to 2050</h1>
-    <div class="sub">Generated: {now}</div>
+    <h1>Climate Change Board</h1>
+    <div class="header-right">
+      <button class="about-header-btn" onclick="showAboutPopup()">About Us</button>
+      <div class="sub">Generated: {now}</div>
+    </div>
   </div>
 
   <div class="tabs">
@@ -654,6 +756,7 @@ def build_html(ctx: dict) -> str:
   <div class="sub" style="margin-top:20px">
     Sources: <a href="{co2["source"]}">NOAA GML</a>, <a href="{nsidc["source"]}">NSIDC</a>, <a href="{ohc["source"]}">NOAA NCEI</a>, <a href="{dublin["link"]}">PSMSL Dublin</a>, <a href="{warn["source"]}">Met Éireann</a>, <a href="{fires.get("source", "")}">NASA FIRMS</a>
   </div>
+
 
 
   <script>
