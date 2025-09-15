@@ -291,6 +291,18 @@ def build_css() -> str:
     --good:#27ae60; --warn:#f39c12; --bad:#e74c3c;
     --primary:#3498db; --accent:#9b59b6; --highlight:#f1c40f;
   }
+  
+  [data-theme="dark"] {
+    --bg:#1a1a1a; --fg:#e8e8e8; --muted:#a0a0a0; --card:#2d2d2d; --border:#404040;
+    --good:#2ecc71; --warn:#f39c12; --bad:#e74c3c;
+    --primary:#3498db; --accent:#9b59b6; --highlight:#f1c40f;
+  }
+  
+  [data-theme="eco"] {
+    --bg:#f0f8f0; --fg:#2d5016; --muted:#5a7c3a; --card:#ffffff; --border:#c8e6c9;
+    --good:#4caf50; --warn:#ff9800; --bad:#f44336;
+    --primary:#4caf50; --accent:#8bc34a; --highlight:#ffeb3b;
+  }
   body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; margin: 18px; color:var(--fg); background:var(--bg); line-height: 1.6; }
   .header { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom: 24px; }
   .header h1 { color: var(--primary); font-weight: 700; }
@@ -307,6 +319,59 @@ def build_css() -> str:
     font-family: inherit;
   }
   .about-header-btn:hover { color: var(--accent); }
+  .theme-toggle {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 36px;
+    position: relative;
+    overflow: hidden;
+    opacity: 0.6;
+  }
+  .theme-toggle:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  .theme-toggle.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    opacity: 1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .theme-toggle span {
+    font-size: 16px;
+    transition: all 0.3s ease;
+  }
+  
+  /* Eco mode background */
+  [data-theme="eco"] body {
+    background-image: 
+      radial-gradient(circle at 20% 80%, rgba(76, 175, 80, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(139, 195, 74, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(76, 175, 80, 0.05) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+  
+  [data-theme="eco"] .tile, 
+  [data-theme="eco"] .card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fff8 100%);
+    border: 1px solid #c8e6c9;
+  }
+  
+  [data-theme="eco"] .tile:hover, 
+  [data-theme="eco"] .card:hover {
+    background: linear-gradient(135deg, #f0f8f0 0%, #e8f5e8 100%);
+    box-shadow: 0 4px 20px rgba(76, 175, 80, 0.2);
+  }
   .tabs { display:flex; gap:8px; margin-bottom: 20px; }
   .tabbtn { border:1px solid var(--border); background:var(--card); padding:10px 16px; border-radius:12px; cursor:pointer; transition: all 0.2s ease; font-weight: 500; }
   .tabbtn:hover { background: var(--primary); color: white; border-color: var(--primary); }
@@ -490,6 +555,17 @@ def build_css() -> str:
   }
   
   .about-popup-close:hover { background: var(--bad); }
+  
+  /* Theme Controls - Bottom Right */
+  .theme-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1000;
+  }
   
 """
 
@@ -684,6 +760,38 @@ def build_javascript() -> str:
   
   // Make showAboutPopup globally available
   window.showAboutPopup = showAboutPopup;
+  
+  // Theme functionality - direct switching to any theme
+  function setTheme(theme) {{
+    const body = document.body;
+    body.setAttribute('data-theme', theme);
+    localStorage.setItem('climate-dashboard-theme', theme);
+    updateThemeButtons(theme);
+  }}
+  
+  // Update active theme button
+  function updateThemeButtons(activeTheme) {{
+    const buttons = document.querySelectorAll('.theme-toggle');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    const activeButton = document.querySelector(`.theme-toggle.${{activeTheme}}-mode`);
+    if (activeButton) {{
+      activeButton.classList.add('active');
+    }}
+  }}
+  
+  // Initialize theme from localStorage
+  function initializeTheme() {{
+    const savedTheme = localStorage.getItem('climate-dashboard-theme') || 'light';
+    document.body.setAttribute('data-theme', savedTheme);
+    updateThemeButtons(savedTheme);
+  }}
+  
+  // Initialize theme on page load
+  initializeTheme();
+  
+  // Make setTheme globally available
+  window.setTheme = setTheme;
   """
 
 
@@ -758,6 +866,19 @@ def build_html(ctx: dict) -> str:
   </div>
 
 
+
+  <!-- Theme Toggle Buttons -->
+  <div class="theme-controls">
+    <button class="theme-toggle light-mode" onclick="setTheme('light')" title="Light Mode">
+      <span class="light-icon">☀️</span>
+    </button>
+    <button class="theme-toggle dark-mode" onclick="setTheme('dark')" title="Dark Mode">
+      <span class="dark-icon">🌙</span>
+    </button>
+    <button class="theme-toggle eco-mode" onclick="setTheme('eco')" title="Eco Mode">
+      <span class="eco-icon">🌳</span>
+    </button>
+  </div>
 
   <script>
 {javascript}

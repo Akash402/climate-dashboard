@@ -125,7 +125,7 @@ def main():
     }
     
     # Generate HTML dashboard
-    print("🏗️ Building HTML dashboard...")
+    print("Building HTML dashboard...")
     html = build_html(context)
     
     # Write to output file
