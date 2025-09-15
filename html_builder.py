@@ -390,7 +390,7 @@ def build_css() -> str:
   details summary { cursor:pointer; color:var(--primary); margin-top:8px; font-weight: 500; }
   details summary:hover { color: var(--accent); }
   .row { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:12px; }
-  .proj { margin-top: 24px; }
+  .proj { margin-top: 20px; margin-bottom: 20px; }
   .proj .label { margin-bottom: 16px; }
   .proj .row { margin-top: 16px; margin-bottom: 20px; }
   .proj .value { margin-top: 16px; margin-bottom: 12px; }
@@ -411,6 +411,7 @@ def build_css() -> str:
   
   /* Solutions Section */
   .solutions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+  .solutions { margin-top: 20px; margin-bottom: 20px; }
   .solution-item { padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
   .solution-item h4 { margin: 0 0 12px 0; color: var(--primary); font-size: 16px; }
   .solution-item p { margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; }
@@ -420,6 +421,7 @@ def build_css() -> str:
   
   /* Cities Section */
   .cities-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
+  .cities { margin-top: 20px; margin-bottom: 20px; }
   .city-item { padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
   .city-item h4 { margin: 0 0 12px 0; color: var(--fg); font-size: 16px; }
   .city-item p { margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; }
