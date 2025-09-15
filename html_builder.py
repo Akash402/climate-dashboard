@@ -725,41 +725,6 @@ def build_javascript() -> str:
   animateBtn.addEventListener('click', animateProjections);
   document.querySelector('.proj').appendChild(animateBtn);
   
-  // About Us popup function
-  function showAboutPopup() {{
-    const popup = document.createElement('div');
-    popup.className = 'about-popup';
-    popup.innerHTML = `
-      <div class="about-popup-content">
-        <button class="about-popup-close" onclick="this.parentElement.parentElement.remove()">×</button>
-        <div class="label">About Us</div>
-        <h3>Climate Change Board</h3>
-        <p>We are software engineers passionate about making climate data accessible and understandable to everyone. Our mission is to provide real-time climate information in a clear, visual format that helps people understand the current state of our planet and what the future holds.</p>
-        <p>This dashboard aggregates data from leading scientific institutions including NOAA, NSIDC, NASA, and Met Éireann to give you a comprehensive view of climate change indicators. We believe that understanding the data is the first step toward taking action.</p>
-        <div class="sub">Data updated twice daily • Built with scientific accuracy • Free and open source</div>
-      </div>
-    `;
-    document.body.appendChild(popup);
-    
-    // Close on background click
-    popup.addEventListener('click', (e) => {{
-      if (e.target === popup) {{
-        popup.remove();
-      }}
-    }});
-    
-    // Close on Escape key
-    const handleEscape = (e) => {{
-      if (e.key === 'Escape') {{
-        popup.remove();
-        document.removeEventListener('keydown', handleEscape);
-      }}
-    }};
-    document.addEventListener('keydown', handleEscape);
-  }}
-  
-  // Make showAboutPopup globally available
-  window.showAboutPopup = showAboutPopup;
   
   // Theme functionality - direct switching to any theme
   function setTheme(theme) {{
@@ -792,6 +757,48 @@ def build_javascript() -> str:
   
   // Make setTheme globally available
   window.setTheme = setTheme;
+  
+  // First-time visitor About Us popup
+  function showAboutPopup() {{
+    const popup = document.createElement('div');
+    popup.className = 'about-popup';
+    popup.innerHTML = `
+      <div class="about-popup-content">
+        <button class="about-popup-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        <div class="label">About Us</div>
+        <h3>Climate Change Board</h3>
+        <p>We are software engineers passionate about making climate data accessible and understandable to everyone. Our mission is to provide real-time climate information in a clear, visual format that helps people understand the current state of our planet and what the future holds.</p>
+        <p>This dashboard aggregates data from leading scientific institutions including NOAA, NSIDC, NASA, and Met Éireann to give you a comprehensive view of climate change indicators. We believe that understanding the data is the first step toward taking action.</p>
+        <div class="sub">Data updated twice daily • Built with scientific accuracy • Free and open source</div>
+      </div>
+    `;
+    document.body.appendChild(popup);
+    
+    // Close on background click
+    popup.addEventListener('click', (e) => {{
+      if (e.target === popup) {{
+        popup.remove();
+      }}
+    }});
+    
+    // Close on Escape key
+    const handleEscape = (e) => {{
+      if (e.key === 'Escape') {{
+        popup.remove();
+        document.removeEventListener('keydown', handleEscape);
+      }}
+    }};
+    document.addEventListener('keydown', handleEscape);
+  }}
+  
+  // Check if first visit and show popup
+  if (!localStorage.getItem('climate-dashboard-visited')) {{
+    setTimeout(showAboutPopup, 1000);
+    localStorage.setItem('climate-dashboard-visited', 'true');
+  }}
+  
+  // Make showAboutPopup globally available
+  window.showAboutPopup = showAboutPopup;
   """
 
 
