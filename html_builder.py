@@ -354,10 +354,84 @@ def build_css() -> str:
   /* Zoomable Images */
   .zoomable { cursor: zoom-in; transition: transform 0.3s ease; }
   .zoomable:hover { transform: scale(1.02); }
-  .zoomable.zoomed { cursor: zoom-out; transform: scale(1.5); z-index: 1000; position: relative; }
+  
+  /* Zoom Modal */
+  .zoom-modal { 
+    display: none; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0, 0, 0, 0.9); 
+    z-index: 10000; 
+    cursor: zoom-out;
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .zoom-modal.show { 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+  }
+  
+  .zoom-content { 
+    position: relative; 
+    max-width: 80vw; 
+    max-height: 80vh; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+  }
+  
+  .zoom-image { 
+    max-width: 100%; 
+    max-height: 100%; 
+    width: auto;
+    height: auto;
+    border-radius: 12px; 
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: zoomIn 0.3s ease-out;
+  }
+  
+  .zoom-close { 
+    position: absolute; 
+    top: -40px; 
+    right: -40px; 
+    background: rgba(255, 255, 255, 0.9); 
+    border: none; 
+    border-radius: 50%; 
+    width: 40px; 
+    height: 40px; 
+    font-size: 20px; 
+    font-weight: bold; 
+    color: #333; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  .zoom-close:hover { 
+    background: white; 
+    transform: scale(1.1); 
+  }
+  
+  @keyframes fadeIn { 
+    from { opacity: 0; } 
+    to { opacity: 1; } 
+  }
+  
+  @keyframes zoomIn { 
+    from { transform: scale(0.8); opacity: 0; } 
+    to { transform: scale(1); opacity: 1; } 
+  }
   
   /* Visit Counter */
   .visit-counter { position: fixed; bottom: 20px; right: 20px; background: var(--primary); color: white; padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1000; }
+  
 """
 
 
@@ -415,14 +489,66 @@ def build_javascript() -> str:
   document.querySelectorAll('input[name="scn"]').forEach(r => r.addEventListener('change', e => {{ scenario = e.target.value; updateSLR(); }}));
   yr.addEventListener('input', updateSLR); updateSLR();
   
-  // Image zoom functionality
+  // Image zoom functionality with modal
   const images = document.querySelectorAll('img');
   images.forEach(img => {{
     img.classList.add('zoomable');
     img.addEventListener('click', () => {{
-      img.classList.toggle('zoomed');
+      openZoomModal(img);
     }});
   }});
+  
+  function openZoomModal(img) {{
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('zoomModal');
+    if (!modal) {{
+      modal = document.createElement('div');
+      modal.id = 'zoomModal';
+      modal.className = 'zoom-modal';
+      modal.innerHTML = `
+        <div class="zoom-content">
+          <img class="zoom-image" src="" alt="">
+          <button class="zoom-close" onclick="closeZoomModal()">×</button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      
+      // Close modal when clicking outside the image
+      modal.addEventListener('click', (e) => {{
+        if (e.target === modal) {{
+          closeZoomModal();
+        }}
+      }});
+      
+      // Close modal with Escape key
+      document.addEventListener('keydown', (e) => {{
+        if (e.key === 'Escape' && modal.classList.contains('show')) {{
+          closeZoomModal();
+        }}
+      }});
+    }}
+    
+    // Set the image source and show modal
+    const modalImg = modal.querySelector('.zoom-image');
+    modalImg.src = img.src;
+    modalImg.alt = img.alt;
+    modal.classList.add('show');
+    
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+  }}
+  
+  function closeZoomModal() {{
+    const modal = document.getElementById('zoomModal');
+    if (modal) {{
+      modal.classList.remove('show');
+      // Re-enable body scroll
+      document.body.style.overflow = 'auto';
+    }}
+  }}
+  
+  // Make closeZoomModal globally available
+  window.closeZoomModal = closeZoomModal;
   
   // Visit counter
   let visitCount = localStorage.getItem('climate-dashboard-visits') || 0;
@@ -433,6 +559,7 @@ def build_javascript() -> str:
   counter.className = 'visit-counter';
   counter.textContent = `👥 Visit #${{visitCount}}`;
   document.body.appendChild(counter);
+  
   
   // Year-by-year animation for projections
   function animateProjections() {{
@@ -490,7 +617,7 @@ def build_html(ctx: dict) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Climate Now & to 2050 — Dashboard</title>
 <!-- Google AdSense -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUBLISHER_ID"
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4840490843724733"
      crossorigin="anonymous"></script>
 <style>
 {css}
@@ -528,18 +655,6 @@ def build_html(ctx: dict) -> str:
     Sources: <a href="{co2["source"]}">NOAA GML</a>, <a href="{nsidc["source"]}">NSIDC</a>, <a href="{ohc["source"]}">NOAA NCEI</a>, <a href="{dublin["link"]}">PSMSL Dublin</a>, <a href="{warn["source"]}">Met Éireann</a>, <a href="{fires.get("source", "")}">NASA FIRMS</a>
   </div>
 
-  <!-- AdSense Footer Ad -->
-  <div style="margin: 20px 0; text-align: center;">
-    <ins class="adsbygoogle"
-         style="display:block"
-         data-ad-client="ca-pub-YOUR_PUBLISHER_ID"
-         data-ad-slot="YOUR_FOOTER_AD_SLOT_ID"
-         data-ad-format="auto"
-         data-full-width-responsive="true"></ins>
-    <script>
-         (adsbygoogle = window.adsbygoogle || []).push({{}});
-    </script>
-  </div>
 
   <script>
 {javascript}

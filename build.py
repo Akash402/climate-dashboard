@@ -41,15 +41,15 @@ def main():
     Fetches all climate data from various sources, handles errors gracefully,
     and generates the final HTML dashboard.
     """
-    print("🌍 Fetching climate data...")
+    print("Fetching climate data...")
     
     # Fetch CO₂ data from NOAA
-    print("  📊 Fetching CO₂ data...")
+    print("Fetching CO₂ data...")
     try:
         co2 = fetch_noaa_co2_monthly()
-        print(f"    ✅ CO₂: {co2['ppm']} ppm ({co2['year']}-{co2['month']:02d})")
+        print(f"    CO₂: {co2['ppm']} ppm ({co2['year']}-{co2['month']:02d})")
     except Exception as e:
-        print(f"    ❌ CO₂ data failed: {e}")
+        print(f"    CO₂ data failed: {e}")
         traceback.print_exc()
         co2 = {
             "year": "N/A", "month": 0, "ppm": float("nan"), 
@@ -57,12 +57,12 @@ def main():
         }
     
     # Fetch weather warnings from Met Éireann
-    print("  🌦️ Fetching weather warnings...")
+    print("  Fetching weather warnings...")
     try:
         warnings = fetch_met_eireann_warnings()
-        print(f"    ✅ Warnings: {warnings['count']} active")
+        print(f"    Warnings: {warnings['count']} active")
     except Exception as e:
-        print(f"    ❌ Weather warnings failed: {e}")
+        print(f"    Weather warnings failed: {e}")
         traceback.print_exc()
         warnings = {
             "count": "N/A", "titles": [], 

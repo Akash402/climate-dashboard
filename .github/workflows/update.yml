@@ -3,7 +3,6 @@ name: Update dashboard
 
 on:
   schedule:
-    # Runs Mondays at 09:00 UTC (GitHub Actions cron is ALWAYS UTC)
     - cron: "0 9,21 * * *"
   workflow_dispatch:
   push:
@@ -19,7 +18,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Free for public repos on standard runners
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
