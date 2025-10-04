@@ -14,8 +14,8 @@ from utils import fmt_num, now_utc_str, m_to_inches
 # Likely global mean sea-level rise by 2050 (relative to 1995–2014)
 SEA_LEVEL_2050_INCH = {
     "low": (m_to_inches(0.15), m_to_inches(0.23)),  # SSP1-1.9
-    "mid": (m_to_inches(0.20), m_to_inches(0.29)),  # SSP5-8.5 mid chosen as wide band
-    "high": (m_to_inches(0.20), m_to_inches(0.29)),  # keep same range for simplicity
+    "mid": (m_to_inches(0.22), m_to_inches(0.33)),  # moderate pathway
+    "high": (m_to_inches(0.28), m_to_inches(0.40)), # higher pathway
 }
 
 SCENARIO_LABEL = {
@@ -617,10 +617,22 @@ def build_javascript() -> str:
   let scenario = "mid";
   const slr = document.getElementById('slr');
   const yr = document.getElementById('yr');
+  // Default the slider to the current year within min/max bounds
+  const nowYear = new Date().getFullYear();
+  const minY = parseInt(yr.min, 10), maxY = parseInt(yr.max, 10);
+  yr.value = Math.max(minY, Math.min(maxY, nowYear));
+  
+  // Scenario-specific baseline around 2025 (relative to baseline period)
+  const START_2025 = new Map([["low",[2.8,3.6]],["mid",[3.4,4.6]],["high",[4.0,5.4]]]);
   function updateSLR(){{
-    const y = yr.value;
+    const y = parseInt(yr.value, 10);
     const vals = SLR[scenario];
-    const lo = vals[0], hi = vals[1];
+    const lo2050 = vals[0], hi2050 = vals[1];
+    const frac = Math.min(1, Math.max(0, (y - 2025) / (2050 - 2025)));
+    const start = START_2025.get(scenario);
+    const startLo = start[0], startHi = start[1];
+    const lo = (startLo + (lo2050 - startLo) * frac).toFixed(1);
+    const hi = (startHi + (hi2050 - startHi) * frac).toFixed(1);
     slr.innerHTML = 'By <b>' + y + '</b>: <b>' + lo + '–' + hi + ' inches</b> (' + SCN_LABEL[scenario] + ')';
   }}
   document.querySelectorAll('input[name="scn"]').forEach(r => r.addEventListener('change', e => {{ scenario = e.target.value; updateSLR(); }}));
