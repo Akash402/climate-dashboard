@@ -22,6 +22,7 @@ Run:
 from __future__ import annotations
 import traceback
 from pathlib import Path
+from typing import Optional
 
 from data_fetchers import (
     fetch_noaa_co2_monthly,
@@ -32,6 +33,42 @@ from data_fetchers import (
     fetch_forest_fires_data
 )
 from html_builder import build_html
+
+
+def read_site_url_from_cname(cname_path: Path) -> Optional[str]:
+    """Return site base URL derived from a CNAME file if present."""
+    try:
+        if cname_path.exists():
+            host = cname_path.read_text(encoding="utf-8").strip()
+            if host:
+                # Default to https scheme for GitHub Pages custom domains
+                return f"https://{host}"
+    except Exception:
+        pass
+    return None
+
+
+def write_robots_txt(dist_dir: Path, site_url: str) -> None:
+    """Write a simple robots.txt that allows all and points to sitemap."""
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        f"Sitemap: {site_url.rstrip('/')}/sitemap.xml\n"
+    )
+    (dist_dir / "robots.txt").write_text(content, encoding="utf-8")
+
+
+def write_sitemap(dist_dir: Path, site_url: str) -> None:
+    """Write a minimal sitemap.xml for the static site."""
+    url = site_url.rstrip("/")
+    xml = (
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
+        f"  <url><loc>{url}/</loc></url>\n"
+        f"  <url><loc>{url}/index.html</loc></url>\n"
+        "</urlset>\n"
+    )
+    (dist_dir / "sitemap.xml").write_text(xml, encoding="utf-8")
 
 
 def main():
@@ -124,13 +161,25 @@ def main():
         "fires": fires
     }
     
+    # Derive site URL from CNAME if present
+    dist_dir = Path("dist")
+    cname_path = Path("CNAME")
+    site_url = read_site_url_from_cname(cname_path) or "https://climatechangeboard.com"
+
     # Generate HTML dashboard
     print("Building HTML dashboard...")
-    html = build_html(context)
+    context_with_site = {**context, "site_url": site_url}
+    html = build_html(context_with_site)
     
     # Write to output file
-    output_path = Path("dist") / "index.html"
+    dist_dir.mkdir(parents=True, exist_ok=True)
+    output_path = dist_dir / "index.html"
     output_path.write_text(html, encoding="utf-8")
+
+    # Write sitemap and robots.txt
+    write_sitemap(dist_dir, site_url)
+    write_robots_txt(dist_dir, site_url)
+
     print(f"Dashboard generated: {output_path}")
     print("Open dist/index.html in your browser to view the dashboard!")
 

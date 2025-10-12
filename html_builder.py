@@ -828,6 +828,14 @@ def build_html(ctx: dict) -> str:
     """
     now = now_utc_str()
     co2, warn, dublin, nsidc, ohc, fires = ctx["co2"], ctx["warnings"], ctx["dublin"], ctx["nsidc"], ctx["ohc"], ctx["fires"]
+    site_url = (ctx.get("site_url") or "https://climatechangeboard.com").rstrip("/")
+    # Prefer explicit chart path if available, otherwise reference default asset path in dist
+    chart_path = (co2.get("chart") or "co2_24mo.png").lstrip("/")
+    og_image = f"{site_url}/{chart_path}"
+    title = "Climate Change Board — Dashboard"
+    description = (
+        "Live climate dashboard: CO₂ levels, sea level, Arctic ice, ocean heat, and more."
+    )
     
     # Build sections
     simple_tiles = build_simple_tiles(ctx)
@@ -843,13 +851,35 @@ def build_html(ctx: dict) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Climate Change Board — Dashboard</title>
+<title>{title}</title>
+<meta name="description" content="{description}">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{site_url}/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{title}">
+<meta property="og:description" content="{description}">
+<meta property="og:url" content="{site_url}/">
+<meta property="og:image" content="{og_image}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{title}">
+<meta name="twitter:description" content="{description}">
+<meta name="twitter:image" content="{og_image}">
+<meta name="theme-color" content="#3498db">
 <!-- Google AdSense -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4840490843724733"
      crossorigin="anonymous"></script>
 <style>
 {css}
 </style>
+<script type="application/ld+json">
+{ {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Climate Change Board",
+  "url": "{site_url}/",
+  "description": "{description}"
+} }
+</script>
 </head>
 <body>
   <div class="header">
