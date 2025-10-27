@@ -22,6 +22,7 @@ Run:
 from __future__ import annotations
 import traceback
 from pathlib import Path
+import os
 from typing import Optional
 
 from data_fetchers import (
@@ -30,7 +31,8 @@ from data_fetchers import (
     fetch_psmsl_dublin_note,
     fetch_nsidc_arctic_daily,
     fetch_noaa_ncei_ohc_latest,
-    fetch_forest_fires_data
+    fetch_forest_fires_data,
+    fetch_meteoalarm_eu_warnings
 )
 from html_builder import build_html
 
@@ -69,6 +71,22 @@ def write_sitemap(dist_dir: Path, site_url: str) -> None:
         "</urlset>\n"
     )
     (dist_dir / "sitemap.xml").write_text(xml, encoding="utf-8")
+
+
+def read_gsc_token() -> Optional[str]:
+    """Read Google Search Console verification token from env or file."""
+    token = os.environ.get("GSC_TOKEN")
+    if token:
+        return token.strip()
+    try:
+        p = Path("gsc_verification.txt")
+        if p.exists():
+            t = p.read_text(encoding="utf-8").strip()
+            if t:
+                return t
+    except Exception:
+        pass
+    return None
 
 
 def main():
@@ -158,7 +176,9 @@ def main():
         "dublin": dublin,
         "nsidc": nsidc,
         "ohc": ohc,
-        "fires": fires
+        "fires": fires,
+        # Pre-computed EU warnings to avoid client-side CORS issues
+        "eu_warnings": fetch_meteoalarm_eu_warnings()
     }
     
     # Derive site URL from CNAME if present
@@ -168,7 +188,8 @@ def main():
 
     # Generate HTML dashboard
     print("Building HTML dashboard...")
-    context_with_site = {**context, "site_url": site_url}
+    gsc_token = read_gsc_token()
+    context_with_site = {**context, "site_url": site_url, "gsc_token": gsc_token}
     html = build_html(context_with_site)
     
     # Write to output file

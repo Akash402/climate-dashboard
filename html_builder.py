@@ -8,6 +8,7 @@ structure, CSS styling, and JavaScript functionality.
 
 from __future__ import annotations
 from utils import fmt_num, now_utc_str, m_to_inches
+import json
 
 
 # Sea level projections for 2050 (IPCC AR6-style)
@@ -113,13 +114,13 @@ def build_details_tiles(ctx: dict) -> str:
         <div class="label">Atmospheric CO₂ (Mauna Loa, monthly)</div>
         <div class="value">{co2_ppm} ppm</div>
         <div class="sub">Latest: {co2_date} · <a href="{co2["source"]}">NOAA GML</a></div>
-        <img src="{co2.get("chart", "")}" alt="CO₂ last 24 months">
+        <img src="{co2.get("chart") or "co2_24mo.png"}" alt="CO₂ last 24 months" loading="lazy" decoding="async">
       </div>
 
       <div class="card reveal">
-        <div class="label">Met Éireann Warnings (Ireland)</div>
-        <div class="value">{fmt_num(warn.get("count"), nd=0)}</div>
-        <div class="sub">{", ".join(warn.get("titles") or []) or "—"} · <a href="{warn["source"]}">Source</a></div>
+        <div class="label" id="warn-label">Met Éireann Warnings (Ireland)</div>
+        <div class="value" id="warn-count">{fmt_num(warn.get("count"), nd=0)}</div>
+        <div class="sub" id="warn-sub">{", ".join(warn.get("titles") or []) or "—"} · <a id="warn-source" href="{warn["source"]}">Source</a></div>
       </div>
 
       <div class="card reveal">
@@ -130,9 +131,9 @@ def build_details_tiles(ctx: dict) -> str:
       </div>
 
       <div class="card reveal">
-        <div class="label">Dublin Tide Gauge</div>
-        <div class="value">{dublin["note"]}</div>
-        <div class="sub"><a href="{dublin["link"]}">PSMSL Station 432</a></div>
+        <div class="label" id="tide-label">Dublin Tide Gauge</div>
+        <div class="value" id="tide-note">{dublin["note"]}</div>
+        <div class="sub"><a id="tide-link" href="{dublin["link"]}">PSMSL Station 432</a></div>
       </div>
 
       <div class="card reveal">
@@ -307,6 +308,7 @@ def build_css() -> str:
   .header { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom: 24px; }
   .header h1 { color: var(--primary); font-weight: 700; }
   .header-right { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .country-row { display:flex; align-items:center; gap:10px; margin: -8px 0 12px; }
   .about-header-btn { 
     background: none; 
     border: none; 
@@ -319,6 +321,34 @@ def build_css() -> str:
     font-family: inherit;
   }
   .about-header-btn:hover { color: var(--accent); }
+  #country-select {
+    background: var(--card);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 44px 8px 12px; /* extra right padding and space after the arrow */
+    min-width: 120px;
+    width: auto;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /* default (light/eco): black arrow */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center; /* arrow position */
+    background-size: 18px 18px;
+  }
+
+  /* dark theme: white arrow */
+  [data-theme="dark"] #country-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    color: #ffffff;
+  }
+  #country-select:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(52,152,219,0.15); }
+  #country-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(52,152,219,0.25); }
   .theme-toggle {
     background: var(--card);
     border: 1px solid var(--border);
@@ -372,8 +402,9 @@ def build_css() -> str:
     background: linear-gradient(135deg, #f0f8f0 0%, #e8f5e8 100%);
     box-shadow: 0 4px 20px rgba(76, 175, 80, 0.2);
   }
-  .tabs { display:flex; gap:8px; margin-bottom: 20px; }
-  .tabbtn { border:1px solid var(--border); background:var(--card); padding:10px 16px; border-radius:12px; cursor:pointer; transition: all 0.2s ease; font-weight: 500; }
+  .tabs { display:flex; gap:12px; margin-bottom: 20px; align-items:center; flex-wrap: wrap; }
+  .tabbtn { border:1px solid var(--border); background:var(--card); padding:10px 16px; border-radius:12px; cursor:pointer; transition: all 0.2s ease; font-weight: 500; color: var(--fg); }
+  [data-theme="dark"] .tabbtn { color: #ffffff; }
   .tabbtn:hover { background: var(--primary); color: white; border-color: var(--primary); }
   .tabbtn.active { background:var(--primary); color: white; border-color:var(--primary); box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3); }
   .section { display:none; }
@@ -457,11 +488,15 @@ def build_css() -> str:
   
   .zoom-content { 
     position: relative; 
-    max-width: 80vw; 
-    max-height: 80vh; 
+    max-width: min(900px, 92vw); 
+    max-height: min(90vh, 1200px); 
     display: flex; 
     align-items: center; 
     justify-content: center; 
+    padding: 8px; 
+    background: var(--card); 
+    border-radius: 12px; 
+    border: 1px solid var(--border);
   }
   
   .zoom-image { 
@@ -579,41 +614,48 @@ def build_javascript() -> str:
     Returns:
         JavaScript string
     """
-    return f"""
+    low0 = f"{SEA_LEVEL_2050_INCH['low'][0]:.1f}"
+    low1 = f"{SEA_LEVEL_2050_INCH['low'][1]:.1f}"
+    mid0 = f"{SEA_LEVEL_2050_INCH['mid'][0]:.1f}"
+    mid1 = f"{SEA_LEVEL_2050_INCH['mid'][1]:.1f}"
+    high0 = f"{SEA_LEVEL_2050_INCH['high'][0]:.1f}"
+    high1 = f"{SEA_LEVEL_2050_INCH['high'][1]:.1f}"
+
+    core_js = r"""
   // Tabs
   const tabs = document.querySelectorAll('.tabbtn');
-  const secs = {{"simple": document.getElementById('simple'), "details": document.getElementById('details')}};
-  tabs.forEach(btn => btn.addEventListener('click', () => {{
+  const secs = {"simple": document.getElementById('simple'), "details": document.getElementById('details')};
+  tabs.forEach(btn => btn.addEventListener('click', () => {
     tabs.forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     Object.values(secs).forEach(s=>s.classList.remove('active'));
     secs[btn.dataset.tab].classList.add('active');
-  }}));
+  }));
 
   // Count-up animation
   const ease = t => 1 - Math.pow(1-t, 3);
   const counts = [...document.querySelectorAll('.count')];
-  const io1 = new IntersectionObserver(es => es.forEach(e=>{{
+  const io1 = new IntersectionObserver(es => es.forEach(e=>{
     if (!e.isIntersecting) return;
     const el = e.target; io1.unobserve(el);
     const end = parseFloat(el.dataset.value); const start = 0, dur = 1000; let t0;
-    function tick(ts){{ t0 ??= ts; const p = Math.min(1,(ts-t0)/dur); el.textContent = (start+(end-start)*ease(p)).toFixed(end%1?1:0); if(p<1) requestAnimationFrame(tick); }}
+    function tick(ts){ t0 ??= ts; const p = Math.min(1,(ts-t0)/dur); el.textContent = (start+(end-start)*ease(p)).toFixed(end%1?1:0); if(p<1) requestAnimationFrame(tick); }
     requestAnimationFrame(tick);
-  }}), {{threshold:.6}});
+  }), {threshold:.6});
   counts.forEach(el=>io1.observe(el));
 
   // Reveal-on-scroll animation
   const rev = document.querySelectorAll('.reveal');
-  const io2 = new IntersectionObserver(es => es.forEach(e=> e.target.classList.toggle('show', e.isIntersecting)), {{threshold:.2}});
+  const io2 = new IntersectionObserver(es => es.forEach(e=> e.target.classList.toggle('show', e.isIntersecting)), {threshold:.2});
   rev.forEach(el=>io2.observe(el));
 
   // Sea level projections
-  const SLR = {{
-    low:  [{SEA_LEVEL_2050_INCH["low"][0]:.1f}, {SEA_LEVEL_2050_INCH["low"][1]:.1f}],
-    mid:  [{SEA_LEVEL_2050_INCH["mid"][0]:.1f}, {SEA_LEVEL_2050_INCH["mid"][1]:.1f}],
-    high: [{SEA_LEVEL_2050_INCH["high"][0]:.1f}, {SEA_LEVEL_2050_INCH["high"][1]:.1f}],
-  }};
-  const SCN_LABEL = {{ low:"Low", mid:"Middle", high:"High" }};
+  const SLR = {
+    low:  [__LOW0__, __LOW1__],
+    mid:  [__MID0__, __MID1__],
+    high: [__HIGH0__, __HIGH1__],
+  };
+  const SCN_LABEL = { low:"Low", mid:"Middle", high:"High" };
   let scenario = "mid";
   const slr = document.getElementById('slr');
   const yr = document.getElementById('yr');
@@ -624,7 +666,7 @@ def build_javascript() -> str:
   
   // Scenario-specific baseline around 2025 (relative to baseline period)
   const START_2025 = new Map([["low",[2.8,3.6]],["mid",[3.4,4.6]],["high",[4.0,5.4]]]);
-  function updateSLR(){{
+  function updateSLR(){
     const y = parseInt(yr.value, 10);
     const vals = SLR[scenario];
     const lo2050 = vals[0], hi2050 = vals[1];
@@ -634,23 +676,23 @@ def build_javascript() -> str:
     const lo = (startLo + (lo2050 - startLo) * frac).toFixed(1);
     const hi = (startHi + (hi2050 - startHi) * frac).toFixed(1);
     slr.innerHTML = 'By <b>' + y + '</b>: <b>' + lo + '–' + hi + ' inches</b> (' + SCN_LABEL[scenario] + ')';
-  }}
-  document.querySelectorAll('input[name="scn"]').forEach(r => r.addEventListener('change', e => {{ scenario = e.target.value; updateSLR(); }}));
+  }
+  document.querySelectorAll('input[name="scn"]').forEach(r => r.addEventListener('change', e => { scenario = e.target.value; updateSLR(); }));
   yr.addEventListener('input', updateSLR); updateSLR();
   
   // Image zoom functionality with modal
   const images = document.querySelectorAll('img');
-  images.forEach(img => {{
+  images.forEach(img => {
     img.classList.add('zoomable');
-    img.addEventListener('click', () => {{
+    img.addEventListener('click', () => {
       openZoomModal(img);
-    }});
-  }});
+    });
+  });
   
-  function openZoomModal(img) {{
+  function openZoomModal(img) {
     // Create modal if it doesn't exist
     let modal = document.getElementById('zoomModal');
-    if (!modal) {{
+    if (!modal) {
       modal = document.createElement('div');
       modal.id = 'zoomModal';
       modal.className = 'zoom-modal';
@@ -663,19 +705,19 @@ def build_javascript() -> str:
       document.body.appendChild(modal);
       
       // Close modal when clicking outside the image
-      modal.addEventListener('click', (e) => {{
-        if (e.target === modal) {{
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
           closeZoomModal();
-        }}
-      }});
+        }
+      });
       
       // Close modal with Escape key
-      document.addEventListener('keydown', (e) => {{
-        if (e.key === 'Escape' && modal.classList.contains('show')) {{
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('show')) {
           closeZoomModal();
-        }}
-      }});
-    }}
+        }
+      });
+    }
     
     // Set the image source and show modal
     const modalImg = modal.querySelector('.zoom-image');
@@ -685,16 +727,16 @@ def build_javascript() -> str:
     
     // Prevent body scroll when modal is open
     document.body.style.overflow = 'hidden';
-  }}
+  }
   
-  function closeZoomModal() {{
+  function closeZoomModal() {
     const modal = document.getElementById('zoomModal');
-    if (modal) {{
+    if (modal) {
       modal.classList.remove('show');
       // Re-enable body scroll
       document.body.style.overflow = 'auto';
-    }}
-  }}
+    }
+  }
   
   // Make closeZoomModal globally available
   window.closeZoomModal = closeZoomModal;
@@ -703,34 +745,34 @@ def build_javascript() -> str:
   // let visitCount = localStorage.getItem('climate-dashboard-visits') || 0;
   // let isUniqueVisitor = !localStorage.getItem('climate-dashboard-visited');
   // 
-  // if (isUniqueVisitor) {{
+  // if (isUniqueVisitor) {
   //   visitCount = parseInt(visitCount) + 1;
   //   localStorage.setItem('climate-dashboard-visits', visitCount);
-  // }}
+  // }
   // 
   // const counter = document.createElement('div');
   // counter.className = 'visit-counter';
-  // counter.textContent = `👥 Unique Visitors: ${{visitCount}}`;
+  // counter.textContent = `👥 Unique Visitors: ${visitCount}`;
   // document.body.appendChild(counter);
   
   
   // Year-by-year animation for projections
-  function animateProjections() {{
+  function animateProjections() {
     const yearSlider = document.getElementById('yr');
     const startYear = 2025;
     const endYear = 2050;
     let currentYear = startYear;
     
-    const interval = setInterval(() => {{
-      if (currentYear <= endYear) {{
+    const interval = setInterval(() => {
+      if (currentYear <= endYear) {
         yearSlider.value = currentYear;
         updateSLR();
         currentYear += 1;
-      }} else {{
+      } else {
         clearInterval(interval);
-      }}
-    }}, 200);
-  }}
+      }
+    }, 200);
+  }
   
   // Add animation button
   const animateBtn = document.createElement('button');
@@ -741,30 +783,30 @@ def build_javascript() -> str:
   
   
   // Theme functionality - direct switching to any theme
-  function setTheme(theme) {{
+  function setTheme(theme) {
     const body = document.body;
     body.setAttribute('data-theme', theme);
     localStorage.setItem('climate-dashboard-theme', theme);
     updateThemeButtons(theme);
-  }}
+  }
   
   // Update active theme button
-  function updateThemeButtons(activeTheme) {{
+  function updateThemeButtons(activeTheme) {
     const buttons = document.querySelectorAll('.theme-toggle');
     buttons.forEach(btn => btn.classList.remove('active'));
     
-    const activeButton = document.querySelector(`.theme-toggle.${{activeTheme}}-mode`);
-    if (activeButton) {{
+    const activeButton = document.querySelector(`.theme-toggle.${activeTheme}-mode`);
+    if (activeButton) {
       activeButton.classList.add('active');
-    }}
-  }}
+    }
+  }
   
   // Initialize theme from localStorage
-  function initializeTheme() {{
+  function initializeTheme() {
     const savedTheme = localStorage.getItem('climate-dashboard-theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
     updateThemeButtons(savedTheme);
-  }}
+  }
   
   // Initialize theme on page load
   initializeTheme();
@@ -773,7 +815,7 @@ def build_javascript() -> str:
   window.setTheme = setTheme;
   
   // First-time visitor About Us popup
-  function showAboutPopup() {{
+  function showAboutPopup() {
     const popup = document.createElement('div');
     popup.className = 'about-popup';
     popup.innerHTML = `
@@ -789,31 +831,423 @@ def build_javascript() -> str:
     document.body.appendChild(popup);
     
     // Close on background click
-    popup.addEventListener('click', (e) => {{
-      if (e.target === popup) {{
+    popup.addEventListener('click', (e) => {
+      if (e.target === popup) {
         popup.remove();
-      }}
-    }});
+      }
+    });
     
     // Close on Escape key
-    const handleEscape = (e) => {{
-      if (e.key === 'Escape') {{
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
         popup.remove();
         document.removeEventListener('keydown', handleEscape);
-      }}
-    }};
+      }
+    };
     document.addEventListener('keydown', handleEscape);
-  }}
+  }
   
   // Check if first visit and show popup
-  if (!localStorage.getItem('climate-dashboard-visited')) {{
+  if (!localStorage.getItem('climate-dashboard-visited')) {
     setTimeout(showAboutPopup, 1000);
     localStorage.setItem('climate-dashboard-visited', 'true');
-  }}
+  }
   
   // Make showAboutPopup globally available
   window.showAboutPopup = showAboutPopup;
-  """
+  
+"""
+
+    geo_js = r"""
+  // --- Country-aware content ---
+  (function initGeolocationCountryAware() {
+    const WARNINGS_BY_COUNTRY = new Map([
+      ["ie", { label: "Met Éireann Warnings (Ireland)", url: "https://www.met.ie/warnings" }],
+      ["us", { label: "NWS Weather Alerts (USA)", url: "https://www.weather.gov/alerts" }],
+      ["gb", { label: "Met Office Warnings (UK)", url: "https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings" }],
+      ["ca", { label: "Environment Canada Alerts (Canada)", url: "https://weather.gc.ca/warnings/index_e.html" }],
+      ["au", { label: "BOM Warnings (Australia)", url: "https://www.bom.gov.au/warnings/" }],
+      ["in", { label: "IMD Warnings (India)", url: "https://mausam.imd.gov.in/" }],
+    ]);
+
+    // EU countries (ISO 3166-1 alpha-2) for Meteoalarm
+    const EU_COUNTRIES = new Set([
+      "at","be","bg","hr","cy","cz","dk","ee","fi","fr","de","gr","hu","ie","it","lv","lt","lu","mt","nl","pl","pt","ro","sk","si","es","se"
+    ]);
+
+    const warnLabel = document.getElementById('warn-label');
+    const warnCount = document.getElementById('warn-count');
+    const warnSub = document.getElementById('warn-sub');
+    const warnSource = document.getElementById('warn-source');
+    const tideLabel = document.getElementById('tide-label');
+    const tideNote = document.getElementById('tide-note');
+    const tideLink = document.getElementById('tide-link');
+    const countrySelect = document.getElementById('country-select');
+
+    const KEY_OVERRIDE = 'climate-country-override';
+    const KEY_AUTO = 'climate-country-auto';
+
+    function loadOverride() {
+      try {
+        const v = (localStorage.getItem(KEY_OVERRIDE) || '').trim().toLowerCase();
+        return (/^[a-z]{2}$/).test(v) ? v : '';
+      } catch (_) { return ''; }
+    }
+    function saveOverride(code) {
+      try {
+        if (code) localStorage.setItem(KEY_OVERRIDE, String(code).toLowerCase());
+        else localStorage.removeItem(KEY_OVERRIDE);
+      } catch (_) {}
+    }
+    function loadAuto() {
+      try {
+        const raw = localStorage.getItem(KEY_AUTO);
+        if (!raw) return null;
+        const j = JSON.parse(raw);
+        if (j && j.code && (/^[a-z]{2}$/).test(String(j.code))) return { code: String(j.code), name: String(j.name || '') };
+      } catch (_) {}
+      return null;
+    }
+    function saveAuto(obj) {
+      try { localStorage.setItem(KEY_AUTO, JSON.stringify({ code: String(obj.code || ''), name: String(obj.name || '') })); } catch (_) {}
+    }
+
+    // ISO 3166-1 alpha-2 country codes
+    const ISO_COUNTRIES = [
+      "af","ax","al","dz","as","ad","ao","ai","aq","ag","ar","am","aw","au","at","az","bs","bh","bd","bb","by","be","bz","bj","bm","bt","bo","bq","ba","bw","bv","br","io","bn","bg","bf","bi","kh","cm","ca","cv","ky","cf","td","cl","cn","cx","cc","co","km","cg","cd","ck","cr","ci","hr","cu","cw","cy","cz","dk","dj","dm","do","ec","eg","sv","gq","er","ee","sz","et","fk","fo","fj","fi","fr","gf","pf","tf","ga","gm","ge","de","gh","gi","gr","gl","gd","gp","gu","gt","gg","gn","gw","gy","ht","hm","va","hn","hk","hu","is","in","id","ir","iq","ie","im","il","it","jm","jp","je","jo","kz","ke","ki","kp","kr","kw","kg","la","lv","lb","ls","lr","ly","li","lt","lu","mo","mk","mg","mw","my","mv","ml","mt","mh","mq","mr","mu","yt","mx","fm","md","mc","mn","me","ms","ma","mz","mm","na","nr","np","nl","nc","nz","ni","ne","ng","nu","nf","mp","no","om","pk","pw","ps","pa","pg","py","pe","ph","pn","pl","pt","pr","qa","re","ro","ru","rw","bl","sh","kn","lc","mf","pm","vc","ws","sm","st","sa","sn","rs","sc","sl","sg","sx","sk","si","sb","so","za","gs","ss","es","lk","sd","sr","sj","se","ch","sy","tw","tj","tz","th","tl","tg","tk","to","tt","tn","tr","tm","tc","tv","ug","ua","ae","gb","us","um","uy","uz","vu","ve","vn","vg","vi","wf","eh","ye","zm","zw"
+    ];
+
+    function populateCountrySelect(currentCode) {
+      if (!countrySelect) return;
+      // Build option list with localized names
+      const entries = ISO_COUNTRIES.map(code => ({ code, name: regionNameFromCode(code) || code.toUpperCase() }))
+        .filter(e => e.name && e.name.trim())
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      // Reset and add Auto option
+      while (countrySelect.firstChild) countrySelect.removeChild(countrySelect.firstChild);
+      const autoOpt = document.createElement('option');
+      autoOpt.value = '';
+      autoOpt.textContent = 'Auto (use my location)';
+      countrySelect.appendChild(autoOpt);
+
+      for (const e of entries) {
+        const opt = document.createElement('option');
+        opt.value = e.code;
+        opt.textContent = `${e.name}`;
+        countrySelect.appendChild(opt);
+      }
+
+      countrySelect.value = currentCode || '';
+
+      // Autosize select width to content
+      requestAnimationFrame(() => {
+        try {
+          const selectedText = countrySelect.options[countrySelect.selectedIndex]?.text || 'Auto (use my location)';
+          const measurer = document.createElement('span');
+          measurer.style.visibility = 'hidden';
+          measurer.style.whiteSpace = 'pre';
+          measurer.style.position = 'absolute';
+          measurer.style.font = getComputedStyle(countrySelect).font;
+          measurer.textContent = selectedText + '  ';
+          document.body.appendChild(measurer);
+          const width = Math.ceil(measurer.getBoundingClientRect().width) + 48; // extra room for custom caret and padding
+          document.body.removeChild(measurer);
+          countrySelect.style.width = width + 'px';
+        } catch (_) {}
+      });
+    }
+
+    function setWarningsFor(code, countryName) {
+      const isEU = EU_COUNTRIES.has(code);
+      const entry = WARNINGS_BY_COUNTRY.get(code) || { label: `${isEU ? 'Meteoalarm' : 'Weather'} Warnings (${countryName || 'Your Country'})`, url: isEU ? 'https://meteoalarm.org/en/live/' : 'https://meteoalarm.org/en/live/' };
+      if (warnLabel) warnLabel.textContent = entry.label;
+      if (warnSource) warnSource.href = entry.url;
+      if (code !== 'ie') {
+        if (warnCount) warnCount.textContent = '—';
+        if (warnSub) warnSub.innerHTML = `— · <a id=\"warn-source\" href=\"${entry.url}\">Source</a>`;
+      }
+    }
+
+    function setTideFor(code, countryName) {
+      if (code === 'ie') {
+        if (tideLabel) tideLabel.textContent = 'Dublin Tide Gauge';
+        return;
+      }
+      if (tideLabel) tideLabel.textContent = `${countryName || 'Local'} Tide Gauge`;
+      if (tideNote) tideNote.textContent = 'Local tide-gauge shows long-term change.';
+      if (tideLink) { tideLink.href = 'https://psmsl.org/data/obtaining/'; tideLink.textContent = 'PSMSL'; }
+    }
+
+    function fetchWithTimeout(url, opts) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), (opts && opts.timeout) || 6000);
+      return fetch(url, { ...(opts || {}), signal: controller.signal }).finally(() => clearTimeout(id));
+    }
+
+    function getPosition() {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) return reject(new Error('geolocation unavailable'));
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+          err => reject(err),
+          { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
+        );
+      });
+    }
+
+    function regionNameFromCode(code) {
+      try {
+        const dn = new Intl.DisplayNames(['en'], { type: 'region' });
+        return dn.of(String(code || '').toUpperCase()) || '';
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function updateWarningsUI({ count, titles, url, countryName }) {
+      const name = countryName || '';
+      const safeTitles = Array.isArray(titles) ? titles.filter(Boolean) : [];
+      if (typeof count === 'number') {
+        if (warnCount) warnCount.textContent = String(count);
+        if (count === 0) {
+          if (warnSub) warnSub.innerHTML = `No weather warnings in ${name || 'your country'} · <a id=\"warn-source\" href=\"${url}\">Source</a>`;
+          return;
+        }
+      } else {
+        // Unknown count (e.g., CORS/API failure): keep dash and point to source
+        if (warnCount) warnCount.textContent = '—';
+        if (warnSub) warnSub.innerHTML = `Open official warnings page for ${name || 'your country'} · <a id=\"warn-source\" href=\"${url}\">Source</a>`;
+        return;
+      }
+      const preview = safeTitles.slice(0, 3).join(', ');
+      const more = safeTitles.length > 3 ? `, and ${safeTitles.length - 3} more…` : '';
+      if (warnSub) warnSub.innerHTML = `${preview || ''}${more || ''} · <a id=\"warn-source\" href=\"${url}\">Source</a>`;
+    }
+
+    async function fetchIEWarnings(countryName) {
+      try {
+        const res = await fetchWithTimeout('https://www.met.ie/Open_Data/json/warning_IRELAND.json', { timeout: 8000 });
+        const j = await res.json();
+        const items = (j && j.warnings) || [];
+        const active = items.filter(w => (String((w && w.status) || '').toLowerCase() === 'active'));
+        const titles = active.map(w => w && w.title).filter(Boolean);
+        updateWarningsUI({ count: active.length, titles, url: 'https://www.met.ie/warnings', countryName });
+        return true;
+      } catch (_) { return false; }
+    }
+
+    async function fetchUSWarnings(countryName) {
+      try {
+        const res = await fetchWithTimeout('https://api.weather.gov/alerts/active?limit=50', { timeout: 9000, headers: { 'Accept': 'application/geo+json' } });
+        const j = await res.json();
+        const feats = (j && j.features) || [];
+        const titles = feats.map(f => (f && f.properties && (f.properties.headline || f.properties.event))).filter(Boolean);
+        updateWarningsUI({ count: feats.length, titles, url: 'https://www.weather.gov/alerts', countryName });
+        return true;
+      } catch (_) { return false; }
+    }
+
+    async function fetchGBWarnings(countryName) {
+      try {
+        const res = await fetchWithTimeout('https://www.metoffice.gov.uk/public/data/PWSCache/WarningsRSS/Region/UK', { timeout: 9000 });
+        const text = await res.text();
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(text, 'application/xml');
+        const items = Array.from(xml.querySelectorAll('item > title')).map(n => n.textContent).filter(Boolean);
+        updateWarningsUI({ count: items.length, titles: items, url: 'https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings', countryName });
+        return true;
+      } catch (_) { return false; }
+    }
+
+    async function fetchEUWarnings(countryCode, countryName) {
+      // Meteoalarm CAP RSS feed per-country; English feed
+      try {
+        const url = `https://feeds.meteoalarm.org/api/alerts/feeds/v1/cap/en/${String(countryCode || '').toUpperCase()}.rss`;
+        const res = await fetchWithTimeout(url, { timeout: 9000 });
+        const text = await res.text();
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(text, 'application/xml');
+        const items = Array.from(xml.querySelectorAll('item > title')).map(n => n.textContent).filter(Boolean);
+        updateWarningsUI({ count: items.length, titles: items, url: 'https://meteoalarm.org/en/live/', countryName });
+        return true;
+      } catch (_) { return false; }
+    }
+
+    async function loadWarningsFor(code, countryName) {
+      // Try country-specific APIs first
+      if (code === 'ie') { if (await fetchIEWarnings(countryName)) return; }
+      if (code === 'us') { if (await fetchUSWarnings(countryName)) return; }
+      if (code === 'gb') { if (await fetchGBWarnings(countryName)) return; }
+      if (EU_COUNTRIES.has(code)) { if (await fetchEUWarnings(code, countryName)) return; }
+
+      // Fallback: show informative default with link, without asserting 0
+      const entry = WARNINGS_BY_COUNTRY.get(code) || { url: 'https://meteoalarm.org/en/live/' };
+      updateWarningsUI({ count: null, titles: [], url: entry.url, countryName });
+    }
+
+    async function detectCountry() {
+      // Optional URL override: ?country=ie (2-letter code)
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const forced = (params.get('country') || '').trim().toLowerCase();
+        if (forced && /^[a-z]{2}$/.test(forced)) {
+          const name = regionNameFromCode(forced) || 'Your Country';
+          console.log('[geo] Using URL override country=', forced);
+          return { code: forced, name };
+        }
+      } catch (e) {
+        console.warn('[geo] URL override parse failed', e);
+      }
+
+      // 1) Try device geolocation first to trigger the permission prompt
+      try {
+        const { lat, lon } = await getPosition();
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
+        const res = await fetchWithTimeout(url, { headers: { 'Accept-Language': 'en' }, timeout: 7000 });
+        const j = await res.json();
+        const code = (j && j.address && j.address.country_code) ? String(j.address.country_code).toLowerCase() : '';
+        const name = (j && j.address && (j.address.country || j.name)) || regionNameFromCode(code);
+        if (code) {
+          console.log('[geo] Device geolocation ->', code, name);
+          return { code, name };
+        }
+      } catch (e) { console.warn('[geo] Device geolocation failed', e); }
+
+      // 2) IP-based country (VPN-aware) with multiple fallbacks
+      try {
+        const res = await fetchWithTimeout('https://ipapi.co/json/', { timeout: 7000 });
+        const j = await res.json();
+        const code = (j && j.country) ? String(j.country).toLowerCase() : '';
+        const name = (j && j.country_name) || regionNameFromCode(code);
+        if (code) { console.log('[geo] ipapi ->', code, name); return { code, name }; }
+      } catch (e) { console.warn('[geo] ipapi failed', e); }
+      try {
+        const res = await fetchWithTimeout('https://api.country.is', { timeout: 7000 });
+        const j = await res.json();
+        const code = (j && j.country) ? String(j.country).toLowerCase() : '';
+        const name = regionNameFromCode(code);
+        if (code) { console.log('[geo] country.is ->', code, name); return { code, name }; }
+      } catch (e) { console.warn('[geo] country.is failed', e); }
+      try {
+        const res = await fetchWithTimeout('https://ipwho.is/?output=json', { timeout: 7000 });
+        const j = await res.json();
+        const code = (j && j.country_code) ? String(j.country_code).toLowerCase() : '';
+        const name = (j && j.country) || regionNameFromCode(code);
+        if (code) { console.log('[geo] ipwho.is ->', code, name); return { code, name }; }
+      } catch (e) { console.warn('[geo] ipwho.is failed', e); }
+
+      // 3) Default to Ireland
+      return { code: 'ie', name: 'Ireland' };
+    }
+
+    async function applyCountry(code, name) {
+      setWarningsFor(code, name);
+      setTideFor(code, name);
+      await loadWarningsFor(code, name);
+    }
+
+    (async () => {
+      try {
+        const overrideCode = loadOverride();
+        const cachedAuto = loadAuto();
+
+        populateCountrySelect(overrideCode || '');
+
+        if (countrySelect) {
+          countrySelect.addEventListener('change', async () => {
+            const sel = (countrySelect.value || '').toLowerCase();
+            // Resize width on change
+            try {
+              const txt = countrySelect.options[countrySelect.selectedIndex]?.text || '';
+              const measurer = document.createElement('span');
+              measurer.style.visibility = 'hidden';
+              measurer.style.whiteSpace = 'pre';
+              measurer.style.position = 'absolute';
+              measurer.style.font = getComputedStyle(countrySelect).font;
+              measurer.textContent = txt + '  ';
+              document.body.appendChild(measurer);
+              const width = Math.ceil(measurer.getBoundingClientRect().width) + 48;
+              document.body.removeChild(measurer);
+              countrySelect.style.width = width + 'px';
+            } catch (_) {}
+
+            if (!sel) {
+              // Back to Auto: clear override and use cached auto or detect once
+              saveOverride('');
+              const auto = loadAuto();
+              if (auto && auto.code) {
+                await applyCountry(auto.code, auto.name || regionNameFromCode(auto.code));
+              } else {
+                const det = await detectCountry();
+                saveAuto(det);
+                await applyCountry(det.code, det.name);
+              }
+            } else {
+              // Manual override persists
+              saveOverride(sel);
+              await applyCountry(sel, regionNameFromCode(sel) || '');
+            }
+          });
+        }
+
+        // If we have pre-computed EU warnings in the page context, use them immediately when applicable
+        const EU_PRECOMP = (window.__EU_WARNINGS__ && window.__EU_WARNINGS__.by_country) || null;
+
+        if (overrideCode) {
+          console.log('[geo] Using manual override', overrideCode);
+          const name = regionNameFromCode(overrideCode) || '';
+          if (EU_PRECOMP && EU_PRECOMP[overrideCode]) {
+            const data = EU_PRECOMP[overrideCode];
+            setWarningsFor(overrideCode, name);
+            updateWarningsUI({ count: (typeof data.count === 'number' ? data.count : null), titles: data.titles || [], url: data.source || 'https://meteoalarm.org/en/live/', countryName: name });
+          } else {
+            await applyCountry(overrideCode, name);
+          }
+          return;
+        }
+
+        if (cachedAuto && cachedAuto.code) {
+          console.log('[geo] Using cached auto detection', cachedAuto.code, cachedAuto.name);
+          const code = cachedAuto.code;
+          const name = cachedAuto.name || regionNameFromCode(code);
+          if (EU_PRECOMP && EU_PRECOMP[code]) {
+            const data = EU_PRECOMP[code];
+            setWarningsFor(code, name);
+            updateWarningsUI({ count: (typeof data.count === 'number' ? data.count : null), titles: data.titles || [], url: data.source || 'https://meteoalarm.org/en/live/', countryName: name });
+          } else {
+            await applyCountry(code, name);
+          }
+          return;
+        }
+
+        const det = await detectCountry();
+        saveAuto(det);
+        if (EU_PRECOMP && EU_PRECOMP[det.code]) {
+          const data = EU_PRECOMP[det.code];
+          setWarningsFor(det.code, det.name);
+          updateWarningsUI({ count: (typeof data.count === 'number' ? data.count : null), titles: data.titles || [], url: data.source || 'https://meteoalarm.org/en/live/', countryName: det.name });
+        } else {
+          await applyCountry(det.code, det.name);
+        }
+      } catch (e) {
+        console.warn('[geo] init failed', e);
+        // leave defaults
+      }
+    })();
+  })();
+"""
+
+    # Inject numeric constants
+    core_js = (core_js
+               .replace("__LOW0__", low0)
+               .replace("__LOW1__", low1)
+               .replace("__MID0__", mid0)
+               .replace("__MID1__", mid1)
+               .replace("__HIGH0__", high0)
+               .replace("__HIGH1__", high1))
+
+    return core_js + geo_js
 
 
 def build_html(ctx: dict) -> str:
@@ -829,6 +1263,8 @@ def build_html(ctx: dict) -> str:
     now = now_utc_str()
     co2, warn, dublin, nsidc, ohc, fires = ctx["co2"], ctx["warnings"], ctx["dublin"], ctx["nsidc"], ctx["ohc"], ctx["fires"]
     site_url = (ctx.get("site_url") or "https://climatechangeboard.com").rstrip("/")
+    gsc_token = ctx.get("gsc_token")
+    gsc_meta = f"<meta name=\"google-site-verification\" content=\"{gsc_token}\">" if gsc_token else ""
     # Prefer explicit chart path if available, otherwise reference default asset path in dist
     chart_path = (co2.get("chart") or "co2_24mo.png").lstrip("/")
     og_image = f"{site_url}/{chart_path}"
@@ -845,6 +1281,7 @@ def build_html(ctx: dict) -> str:
     cities = build_sea_level_cities_section()
     css = build_css()
     javascript = build_javascript()
+    eu_warnings = json.dumps(ctx.get("eu_warnings", {}), ensure_ascii=False)
     
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -865,6 +1302,8 @@ def build_html(ctx: dict) -> str:
 <meta name="twitter:description" content="{description}">
 <meta name="twitter:image" content="{og_image}">
 <meta name="theme-color" content="#3498db">
+<base target="_blank">
+{gsc_meta}
 <!-- Google AdSense -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4840490843724733"
      crossorigin="anonymous"></script>
@@ -893,6 +1332,9 @@ def build_html(ctx: dict) -> str:
   <div class="tabs">
     <button class="tabbtn active" data-tab="simple">Simple</button>
     <button class="tabbtn" data-tab="details">Details</button>
+    <select id="country-select" title="Select country">
+      <option value="">Auto (use my location)</option>
+    </select>
   </div>
 
   <section id="simple" class="section active">
@@ -932,6 +1374,7 @@ def build_html(ctx: dict) -> str:
   </div>
 
   <script>
+  window.__EU_WARNINGS__ = {eu_warnings};
 {javascript}
   </script>
 </body>

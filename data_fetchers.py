@@ -19,6 +19,7 @@ import pandas as pd
 import numpy as np
 
 from utils import http_get, try_urls, fmt_num, m_to_inches
+import xml.etree.ElementTree as ET
 
 
 # Output directory for generated files
@@ -307,3 +308,49 @@ def fetch_noaa_ncei_ohc_latest() -> dict:
         "units": "",
         "source": "https://www.ncei.noaa.gov/access/global-ocean-heat-content/"
     }
+
+
+def fetch_meteoalarm_eu_warnings(country_codes: list[str] | None = None) -> dict:
+    """
+    Fetch active weather warnings for EU countries from Meteoalarm CAP RSS.
+    Server-side to avoid CORS issues in the browser.
+
+    Args:
+        country_codes: Optional list of ISO 3166-1 alpha-2 codes to fetch. If None, uses a default EU set.
+
+    Returns:
+        Dictionary with per-country entries: { code: { count, titles, source } }
+    """
+    default_eu = [
+        "at","be","bg","hr","cy","cz","dk","ee","fi","fr","de","gr","hu","ie","it","lv","lt","lu","mt","nl","pl","pt","ro","sk","si","es","se"
+    ]
+    codes = [c.lower() for c in (country_codes or default_eu)]
+    result: dict[str, dict] = {}
+
+    for code in codes:
+        try:
+            url = f"https://feeds.meteoalarm.org/api/alerts/feeds/v1/cap/en/{code.upper()}.rss"
+            r = http_get(url, timeout=30)
+            text = r.text
+            # Parse RSS/Atom generously
+            root = ET.fromstring(text)
+            titles: list[str] = []
+            # RSS: channel/item/title
+            titles += [t.text or "" for t in root.findall('.//item/title') if (t is not None and (t.text or '').strip())]
+            # Atom: entry/title
+            titles += [t.text or "" for t in root.findall('.//{*}entry/{*}title') if (t is not None and (t.text or '').strip())]
+            titles = [t.strip() for t in titles if t and t.strip()]
+            result[code] = {
+                "count": len(titles),
+                "titles": titles[:5],
+                "source": "https://meteoalarm.org/en/live/",
+            }
+        except Exception:
+            # Graceful fallback: indicate unavailable
+            result[code] = {
+                "count": "N/A",
+                "titles": [],
+                "source": "https://meteoalarm.org/en/live/",
+            }
+
+    return {"by_country": result, "source": "https://meteoalarm.org/en/live/"}
